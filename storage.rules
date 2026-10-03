@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // BagBuddy stores one object per account at `<email>/<file>`. The signed-in
+    // account's verified email claim from the Firebase ID token has to match the
+    // folder name, so one person can never read or overwrite another's bags.
+    match /{email}/{file} {
+      allow read, write, delete: if request.auth != null
+                                 && request.auth.token.email != null
+                                 && request.auth.token.email.lower() == email.lower();
+    }
+
+    // Everything outside an account folder is closed.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

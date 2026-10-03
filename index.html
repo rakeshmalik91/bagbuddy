@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/bagbuddy-icon.svg" />
+    <link rel="apple-touch-icon" href="/bagbuddy-icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="canonical" href="https://bag-buddy.netlify.app/" />
+    <title>BagBuddy — visual baggage organiser</title>
+    <meta
+      name="description"
+      content="BagBuddy is your luggage balance copilot: drag items into your bags and see each bag's total weight. Free, private, and it all stays in your browser."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bag-buddy.netlify.app/" />
+    <meta property="og:title" content="BagBuddy — visual baggage organiser" />
+    <meta
+      property="og:description"
+      content="Drag items into your bags and see each bag's total weight. Free, private, and it all stays in your browser."
+    />
+    <meta property="og:image" content="/bagbuddy-icon.svg" />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <script>
+      // Set the theme before first paint so the page never flashes the wrong one.
+      try {
+        var stored = localStorage.getItem('bagbuddy:theme')
+        var dark =
+          stored === 'dark' ||
+          ((!stored || stored === 'system') &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) document.documentElement.classList.add('dark')
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+      } catch (error) {
+        // Storage blocked, so just follow the system.
+      }
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

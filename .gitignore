@@ -1,0 +1,46 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Tooling caches
+.eslintcache
+.vite/
+coverage/
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+*-debug.log
+
+# Local board exports from sync.py (real packing data, not for the repository)
+data/
+
+# Temporary files
+/*.tmp
+/_*
+/temp_*
+/temp-*
+/tmp_*
+/tmp-*
