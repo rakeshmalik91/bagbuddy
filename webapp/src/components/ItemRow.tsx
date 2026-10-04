@@ -3,7 +3,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { toDragId } from '../lib/dnd'
-import type { Item, WeightUnit } from '../types'
+import { formatWeight } from '../lib/units'
+import type { Item, ItemKind, WeightUnit } from '../types'
 import { AutoText } from './AutoText'
 import { PlusIcon } from './PlusIcon'
 import { WeightInput } from './WeightInput'
@@ -18,11 +19,20 @@ interface ItemRowProps {
   tone: string
   /** Inside a bag the delete control takes the item out rather than removing it. */
   inBag: boolean
+  /** How many items this pouch carries, and what they come to. */
+  contentsCount: number
+  contentsKg: number
+  /** True while a dragged item is hovering this pouch, waiting to be dropped in. */
+  isDropTarget: boolean
+  /** The contents list, rendered inside the pouch row. */
+  children?: ReactNode
+  otherItemNames?: string[]
   onRename(name: string): void
   onProductName(productName: string): void
   onWeight(weightKg: number): void
   onAccessoriesWeight(accessoriesKg: number): void
   onAccessoriesNote(accessoriesNote: string): void
+  onConvertKind(kind: ItemKind): void
   onRemove(): void
   onLookup(): void
 }
@@ -38,6 +48,10 @@ interface ItemRowProps {
  * packing, plus the accessories row when there is something in it. Selecting it
  * opens the rest: the lookup and delete buttons, the product name and the
  * accessories fields.
+ *
+ * A pouch carries a one line summary of what is inside it, and its contents
+ * nested underneath, because that is how it is counted: the pouch's own weight
+ * plus everything in it.
  */
 export function ItemRow({
   item,
@@ -46,16 +60,30 @@ export function ItemRow({
   compact,
   tone,
   inBag,
+  contentsCount,
+  contentsKg,
+  isDropTarget,
+  children,
+  otherItemNames = [],
   onRename,
   onProductName,
   onWeight,
   onAccessoriesWeight,
   onAccessoriesNote,
+  onConvertKind,
   onRemove,
   onLookup,
 }: ItemRowProps) {
   const [selected, setSelected] = useState(false)
   const cardRef = useRef<HTMLLIElement>(null)
+
+  const trimmedItemName = item.name.trim()
+  const isDuplicate = Boolean(
+    trimmedItemName &&
+      otherItemNames.some(
+        (other) => other.trim().toLowerCase() === trimmedItemName.toLowerCase(),
+      ),
+  )
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: toDragId(item.id),
@@ -82,6 +110,7 @@ export function ItemRow({
 
   const estimated = item.weightSource !== 'manual'
   const hasAccessories = item.accessoriesKg > 0 || item.accessoriesNote.trim().length > 0
+  const isPouch = item.kind === 'pouch'
   // The rows under the title stop short of the weight field, so the product
   // name cannot read as if it belongs to the weight column.
   const gutter = compact ? 'pr-[72px]' : 'pr-[88px]'
@@ -151,9 +180,11 @@ export function ItemRow({
       onTouchStart={dragFrom}
       onKeyDown={dragFromKeyboard}
       className={`flex cursor-grab touch-manipulation gap-2 rounded-xl border px-2 py-1.5 shadow-xs transition-colors active:cursor-grabbing ${tone} ${
-        selected
-          ? 'border-indigo-300 ring-2 ring-indigo-500/20 dark:border-indigo-500/60'
-          : 'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700'
+        isDropTarget
+          ? 'border-indigo-400 ring-2 ring-indigo-500/40 dark:border-indigo-400'
+          : selected
+            ? 'border-indigo-300 ring-2 ring-indigo-500/20 dark:border-indigo-500/60'
+            : 'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700'
       } ${isDragging ? 'opacity-40 select-none' : ''}`}
     >
       {sideAction}
@@ -165,19 +196,61 @@ export function ItemRow({
             onChange={onRename}
             ariaLabel={`Name of item ${item.name || ''}`}
             placeholder="Item name"
-            className={`min-w-0 flex-1 rounded-md bg-transparent px-1 font-semibold leading-tight text-slate-800 outline-none transition focus:bg-slate-100 dark:text-slate-50 dark:focus:bg-slate-800 ${
-              compact ? 'text-sm' : 'text-base'
-            }`}
+            className={`min-w-0 flex-1 rounded-md px-1 font-semibold leading-tight outline-none transition ${
+              isDuplicate
+                ? 'border border-rose-400 bg-rose-50/50 text-rose-700 ring-2 ring-rose-500/20 dark:border-rose-500 dark:bg-rose-950/30 dark:text-rose-300'
+                : 'bg-transparent text-slate-800 focus:bg-slate-100 dark:text-slate-50 dark:focus:bg-slate-800'
+            } ${compact ? 'text-sm' : 'text-base'}`}
           />
 
           <WeightInput
             valueKg={item.weightKg}
             unit={unit}
             onChange={onWeight}
-            label={`Weight of ${item.name || 'item'}`}
+            label={`${isPouch ? 'Empty weight' : 'Weight'} of ${item.name || 'item'}`}
             className={compact ? 'w-16 shrink-0' : 'w-20 shrink-0'}
           />
+
+          {/* Any item can be a pouch, so an existing one can become one here. */}
+          {selected && (
+            <button
+              type="button"
+              onClick={() => onConvertKind(isPouch ? 'item' : 'pouch')}
+              aria-pressed={isPouch}
+              aria-label={`${isPouch ? 'Stop treating' : 'Treat'} ${item.name || 'item'} as a pouch`}
+              title="Pouch: other items can be packed inside this one"
+              className={`shrink-0 rounded-md p-1.5 transition ${
+                isPouch
+                  ? 'text-indigo-500 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10'
+                  : 'text-slate-300 hover:bg-slate-100 hover:text-slate-500 dark:text-slate-600 dark:hover:bg-slate-800'
+              }`}
+            >
+              <PouchIcon />
+            </button>
+          )}
         </div>
+
+        {isDuplicate && (
+          <p className="mt-0.5 text-xs font-medium text-rose-500 dark:text-rose-400">
+            An item named &ldquo;{trimmedItemName}&rdquo; already exists
+          </p>
+        )}
+
+        {isPouch && (
+          <p className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="text-slate-300 dark:text-slate-600">
+              <PouchIcon />
+            </span>
+            {contentsCount === 0 ? (
+              <span className="italic text-slate-400">empty, drag items in</span>
+            ) : (
+              <span className="tabular-nums">
+                {contentsCount} item{contentsCount === 1 ? '' : 's'} ·{' '}
+                {formatWeight(contentsKg, unit)} {unit}
+              </span>
+            )}
+          </p>
+        )}
 
         {/* Blank rows stay out of the way; the placeholder only appears once the
             card is open, so a packed bag reads as name, weight and nothing else.
@@ -236,6 +309,8 @@ export function ItemRow({
             )}
           </div>
         )}
+
+        {children}
       </div>
     </li>
   )
@@ -247,6 +322,23 @@ function isControlTarget(target: EventTarget | null): boolean {
 
 function holdsTextSelection(target: EventTarget | null): boolean {
   return target instanceof HTMLTextAreaElement && target.selectionStart !== target.selectionEnd
+}
+
+function PouchIcon({ className = 'size-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true" fill="none" stroke="currentColor">
+      <path
+        d="M6.5 6V4.8A1.8 1.8 0 0 1 8.3 3h3.4a1.8 1.8 0 0 1 1.8 1.8V6"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4.5 6h11l.7 9.2a1.6 1.6 0 0 1-1.6 1.8H5.4a1.6 1.6 0 0 1-1.6-1.8L4.5 6Z"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
 function SearchIcon() {

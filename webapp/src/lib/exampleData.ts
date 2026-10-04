@@ -1,4 +1,4 @@
-import type { Bag, BaggageState, Item, ItemColumnCount } from '../types'
+import type { Bag, BaggageState, Item, ItemColumnCount, ItemKind } from '../types'
 import { createId } from './id'
 
 interface ItemSeed {
@@ -8,6 +8,9 @@ interface ItemSeed {
   accessoriesKg?: number
   accessoriesNote?: string
   bagId: string | null
+  kind?: ItemKind
+  /** The pouch this one travels inside, so it follows that pouch around. */
+  inside?: Item
 }
 
 function seedItem(seed: ItemSeed): Item {
@@ -18,7 +21,9 @@ function seedItem(seed: ItemSeed): Item {
     weightKg: seed.weightKg,
     accessoriesKg: seed.accessoriesKg ?? 0,
     accessoriesNote: seed.accessoriesNote ?? '',
-    bagId: seed.bagId,
+    kind: seed.kind ?? 'item',
+    bagId: seed.inside ? seed.inside.bagId : seed.bagId,
+    pouchId: seed.inside?.id ?? null,
     weightSource: 'manual',
   }
 }
@@ -45,6 +50,7 @@ function seedBag(
     limitKg,
     itemColumns,
     colorIndex,
+    parked: false,
   }
 }
 
@@ -52,6 +58,16 @@ function seedBag(
 export function createExampleState(): BaggageState {
   const cabin = seedBag('Cabin bag', 'Samsonite Tectonic 67', 3.4, 0.25, 'liquids bag, passport wallet', true, 8, 1, 0)
   const hold = seedBag('Hold suitcase', 'Delsey Helium 76', 5.2, 0.4, 'rain cover, TSA lock', true, 23, 1, 1)
+
+  // A pouch is an item like any other, except that other items travel inside it.
+  const kit = seedItem({
+    name: 'Toiletry bag',
+    weightKg: 0.7,
+    accessoriesKg: 0.1,
+    accessoriesNote: 'travel bottles',
+    bagId: hold.id,
+    kind: 'pouch',
+  })
 
   return {
     bags: [cabin, hold],
@@ -69,16 +85,13 @@ export function createExampleState(): BaggageState {
       seedItem({ name: 'T-shirt', weightKg: 0.2, bagId: hold.id }),
       seedItem({ name: 'Jeans', weightKg: 0.55, bagId: hold.id }),
       seedItem({ name: 'Shoes', productName: 'running shoes, size 43', weightKg: 0.9, bagId: hold.id }),
-      seedItem({
-        name: 'Toiletry bag',
-        weightKg: 0.7,
-        accessoriesKg: 0.1,
-        accessoriesNote: 'travel bottles',
-        bagId: hold.id,
-      }),
+      kit,
+      seedItem({ name: 'Toothbrush', weightKg: 0.03, bagId: hold.id, inside: kit }),
+      seedItem({ name: 'Razor', weightKg: 0.05, bagId: hold.id, inside: kit }),
       seedItem({ name: 'Travel adapter', weightKg: 0.12, bagId: null }),
       seedItem({ name: 'Paperback book', weightKg: 0.35, bagId: null }),
     ],
     unit: 'kg',
+    snapshots: [],
   }
 }

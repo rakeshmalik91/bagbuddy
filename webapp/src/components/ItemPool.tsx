@@ -1,45 +1,51 @@
 import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { POOL_ID } from '../lib/dnd'
-import type { Item, WeightUnit } from '../types'
+import type { Item, ItemKind, WeightUnit } from '../types'
 import { ItemForm } from './ItemForm'
 import type { NewItemInput } from './ItemForm'
 import { ItemList } from './ItemList'
 
 interface ItemPoolProps {
   items: Item[]
+  /** Every item, so a pouch in the tray can find what is inside it. */
+  allItems: Item[]
   unit: WeightUnit
   columns: number
-  /** True while a dragged item is hovering this tray. */
-  isActive: boolean
+  /** The container a drag is currently over. */
+  hoverContainerId: string | null
   onAdd(input: NewItemInput): void
   onRename(id: string, name: string): void
   onProductName(id: string, productName: string): void
   onWeight(id: string, weightKg: number): void
   onAccessoriesWeight(id: string, accessoriesKg: number): void
   onAccessoriesNote(id: string, accessoriesNote: string): void
+  onConvertKind(id: string, kind: ItemKind): void
   onRemove(id: string): void
   onLookup(id: string): void
-  onLookupFromForm(name: string, productName: string, settled: () => void): void
+  onLookupFromForm(name: string, productName: string, kind: ItemKind, settled: () => void): void
 }
 
 export function ItemPool({
   items,
+  allItems,
   unit,
   columns,
-  isActive,
+  hoverContainerId,
   onAdd,
   onRename,
   onProductName,
   onWeight,
   onAccessoriesWeight,
   onAccessoriesNote,
+  onConvertKind,
   onRemove,
   onLookup,
   onLookupFromForm,
 }: ItemPoolProps) {
   const [adding, setAdding] = useState(false)
   const { setNodeRef, isOver } = useDroppable({ id: POOL_ID })
+  const isActive = hoverContainerId === POOL_ID
 
   return (
     <section className="flex min-w-0 flex-col gap-3">
@@ -55,12 +61,13 @@ export function ItemPool({
       {adding ? (
         <ItemForm
           unit={unit}
+          existingItemNames={allItems.map((i) => i.name)}
           onAdd={(input) => {
             onAdd(input)
             setAdding(false)
           }}
           onCancel={() => setAdding(false)}
-          onLookup={(name, productName) => onLookupFromForm(name, productName, () => setAdding(false))}
+          onLookup={(name, productName, kind) => onLookupFromForm(name, productName, kind, () => setAdding(false))}
         />
       ) : (
         <button
@@ -87,16 +94,19 @@ export function ItemPool({
         ) : (
           <ItemList
             items={items}
+            allItems={allItems}
             containerId={POOL_ID}
             unit={unit}
             columns={columns}
             limitKg={null}
             inBag={false}
+            hoverContainerId={hoverContainerId}
             onRename={onRename}
             onProductName={onProductName}
             onWeight={onWeight}
             onAccessoriesWeight={onAccessoriesWeight}
             onAccessoriesNote={onAccessoriesNote}
+            onConvertKind={onConvertKind}
             onRemove={onRemove}
             onLookup={onLookup}
           />

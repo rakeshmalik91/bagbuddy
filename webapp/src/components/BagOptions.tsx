@@ -7,20 +7,24 @@ interface BagOptionsProps {
   colorIndex: number
   itemColumns: ItemColumnCount
   extrasEnabled: boolean
+  parked: boolean
   onColor(colorIndex: number): void
   onColumns(itemColumns: ItemColumnCount): void
   onExtrasEnabled(enabled: boolean): void
+  onToggleParked(): void
 }
 
-/** Colour, column layout and the bag extras row, tucked behind one menu. */
+/** Colour, column layout, parking state and the bag extras row, tucked behind one menu. */
 export function BagOptions({
   bagName,
   colorIndex,
   itemColumns,
   extrasEnabled,
+  parked,
   onColor,
   onColumns,
   onExtrasEnabled,
+  onToggleParked,
 }: BagOptionsProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -113,6 +117,11 @@ export function BagOptions({
               label="Bag extras row"
               checked={extrasEnabled}
               onChange={onExtrasEnabled}
+            />
+            <Toggle
+              label="Park bag"
+              checked={parked}
+              onChange={onToggleParked}
             />
           </div>
           <p className="sr-only">{bagColor(colorIndex).name}</p>

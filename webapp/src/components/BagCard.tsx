@@ -1,9 +1,11 @@
 import { useDroppable } from '@dnd-kit/core'
-import { bagContainerId } from '../lib/dnd'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { bagContainerId, toBagDragId } from '../lib/dnd'
 import { bagColor } from '../lib/bagColors'
 import { bagCardLayout } from '../lib/layout'
 import { itemsInContainer, bagTotals } from '../state/baggageReducer'
-import type { Bag, Item, ItemColumnCount, WeightUnit } from '../types'
+import type { Bag, Item, ItemColumnCount, ItemKind, WeightUnit } from '../types'
 import { formatWeight } from '../lib/units'
 import { AutoText } from './AutoText'
 import { BagOptions } from './BagOptions'
@@ -15,8 +17,9 @@ interface BagCardProps {
   bag: Bag
   items: Item[]
   unit: WeightUnit
-  /** True while a dragged item is hovering this bag. */
-  isActive: boolean
+  /** The container a drag is currently over. */
+  hoverContainerId: string | null
+  otherBagNames?: string[]
   onRename(name: string): void
   onProductName(productName: string): void
   onLookup(): void
@@ -27,12 +30,14 @@ interface BagCardProps {
   onColumns(itemColumns: ItemColumnCount): void
   onExtrasEnabled(enabled: boolean): void
   onColor(colorIndex: number): void
+  onToggleParked(): void
   onRemove(): void
   onRenameItem(id: string, name: string): void
   onItemProductName(id: string, productName: string): void
   onItemWeight(id: string, weightKg: number): void
   onItemAccessoriesWeight(id: string, accessoriesKg: number): void
   onItemAccessoriesNote(id: string, accessoriesNote: string): void
+  onConvertItemKind(id: string, kind: ItemKind): void
   onRemoveItem(id: string): void
   onLookupItem(id: string): void
 }
@@ -41,7 +46,8 @@ export function BagCard({
   bag,
   items,
   unit,
-  isActive,
+  hoverContainerId,
+  otherBagNames = [],
   onRename,
   onProductName,
   onLookup,
@@ -52,18 +58,40 @@ export function BagCard({
   onColumns,
   onExtrasEnabled,
   onColor,
+  onToggleParked,
   onRemove,
   onRenameItem,
   onItemProductName,
   onItemWeight,
   onItemAccessoriesWeight,
   onItemAccessoriesNote,
+  onConvertItemKind,
   onRemoveItem,
   onLookupItem,
 }: BagCardProps) {
   const color = bagColor(bag.colorIndex)
   const contained = itemsInContainer(items, bag.id)
-  const { setNodeRef, isOver } = useDroppable({ id: bagContainerId(bag.id) })
+  const { setNodeRef: setBagDropRef, isOver } = useDroppable({ id: bagContainerId(bag.id) })
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: toBagDragId(bag.id),
+    data: { type: 'bag', bag },
+  })
+  const isActive = hoverContainerId === bagContainerId(bag.id)
+
+  const trimmedBagName = bag.name.trim()
+  const isNameDuplicate = Boolean(
+    trimmedBagName &&
+      otherBagNames.some(
+        (other) => other.trim().toLowerCase() === trimmedBagName.toLowerCase(),
+      ),
+  )
 
   const totals = bagTotals(bag, items)
   const totalKg = totals.totalKg
@@ -73,27 +101,69 @@ export function BagCard({
 
   return (
     <article
+      ref={setSortableRef}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.35 : undefined,
+      }}
       className={`flex ${bagCardLayout(bag.itemColumns)} flex-col gap-3 rounded-2xl border bg-white/80 shadow-sm ring-2 transition dark:bg-slate-900/70 ${
         over ? 'border-rose-400' : 'border-slate-200 dark:border-slate-800'
       } ${isOver || isActive ? `${color.ring} ring-2` : 'ring-transparent'}`}
     >
       <header className={`flex flex-col gap-2 rounded-t-2xl px-3 py-2.5 ${color.tint}`}>
         <div className="flex items-start gap-2">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            title="Drag to reorder bag or drag across parking line"
+            aria-label={`Drag to reorder ${bag.name}`}
+            className="mt-1 -ml-1 cursor-grab rounded p-1 text-slate-400 transition hover:bg-black/5 hover:text-slate-600 active:cursor-grabbing dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300"
+          >
+            <svg className="size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="3" r="1.5" />
+              <circle cx="11" cy="3" r="1.5" />
+              <circle cx="5" cy="8" r="1.5" />
+              <circle cx="11" cy="8" r="1.5" />
+              <circle cx="5" cy="13" r="1.5" />
+              <circle cx="11" cy="13" r="1.5" />
+            </svg>
+          </button>
           <span className={`mt-2 size-2.5 shrink-0 rounded-full ${color.dot}`} aria-hidden="true" />
           <div className="flex min-w-0 flex-1 flex-col">
-            <input
-              value={bag.name}
-              aria-label={`Name of ${bag.name}`}
-              placeholder="Bag name"
-              onChange={(event) => onRename(event.target.value)}
-              className="w-full rounded-md bg-transparent px-1 py-0.5 text-base font-semibold text-slate-800 outline-none transition focus:bg-white/70 dark:text-slate-100 dark:focus:bg-slate-800/70"
-            />
-            <input
+            <div className="flex items-center gap-2">
+              <AutoText
+                value={bag.name}
+                ariaLabel={`Name of ${bag.name}`}
+                placeholder="Bag name"
+                onChange={onRename}
+                className={`min-w-0 flex-1 rounded-md px-1 py-0.5 text-base font-semibold transition ${
+                  isNameDuplicate
+                    ? 'border border-rose-400 bg-rose-50/50 text-rose-700 ring-2 ring-rose-500/20 dark:border-rose-500 dark:bg-rose-950/30 dark:text-rose-300'
+                    : 'bg-transparent text-slate-800 focus:bg-white/70 dark:text-slate-100 dark:focus:bg-slate-800/70'
+                }`}
+              />
+              {bag.parked && (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-300/80 bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  <span className="flex size-3 items-center justify-center rounded-xs bg-slate-500 text-[8px] font-bold text-white dark:bg-slate-600">
+                    P
+                  </span>
+                  Parked
+                </span>
+              )}
+            </div>
+            {isNameDuplicate && (
+              <p className="mt-0.5 text-xs font-medium text-rose-500 dark:text-rose-400">
+                A bag named &ldquo;{trimmedBagName}&rdquo; already exists
+              </p>
+            )}
+            <AutoText
               value={bag.productName}
-              aria-label={`Product name of ${bag.name}`}
+              ariaLabel={`Product name of ${bag.name}`}
               placeholder="Brand and model, used to look up its empty weight"
-              onChange={(event) => onProductName(event.target.value)}
-              className="w-full rounded-md bg-transparent px-1 py-0 text-xs text-slate-500 outline-none transition placeholder:text-slate-400/70 focus:bg-white/70 dark:text-slate-400 dark:placeholder:text-slate-600 dark:focus:bg-slate-800/70"
+              onChange={onProductName}
+              className="w-full rounded-md bg-transparent px-1 py-0 text-xs text-slate-500 transition placeholder:text-slate-400/70 focus:bg-white/70 dark:text-slate-400 dark:placeholder:text-slate-600 dark:focus:bg-slate-800/70"
             />
           </div>
           <BagOptions
@@ -101,9 +171,11 @@ export function BagCard({
             colorIndex={bag.colorIndex}
             itemColumns={bag.itemColumns}
             extrasEnabled={bag.extrasEnabled}
+            parked={Boolean(bag.parked)}
             onColor={onColor}
             onColumns={onColumns}
             onExtrasEnabled={onExtrasEnabled}
+            onToggleParked={onToggleParked}
           />
           <button
             type="button"
@@ -212,7 +284,7 @@ export function BagCard({
       </header>
 
       <div
-        ref={setNodeRef}
+        ref={setBagDropRef}
         className={`flex min-h-20 flex-col gap-2 px-2 pb-2 ${
           isOver ? 'rounded-b-2xl bg-indigo-50/60 dark:bg-indigo-500/10' : ''
         }`}
@@ -224,16 +296,19 @@ export function BagCard({
         ) : (
           <ItemList
             items={contained}
+            allItems={items}
             containerId={bagContainerId(bag.id)}
             unit={unit}
             columns={bag.itemColumns}
             limitKg={bag.limitKg}
             inBag
+            hoverContainerId={hoverContainerId}
             onRename={onRenameItem}
             onProductName={onItemProductName}
             onWeight={onItemWeight}
             onAccessoriesWeight={onItemAccessoriesWeight}
             onAccessoriesNote={onItemAccessoriesNote}
+            onConvertKind={onConvertItemKind}
             onRemove={onRemoveItem}
             onLookup={onLookupItem}
           />

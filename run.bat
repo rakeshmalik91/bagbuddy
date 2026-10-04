@@ -1,6 +1,5 @@
 @echo off
 setlocal
-cd /d "%~dp0webapp"
 
 where npm >nul 2>nul
 if errorlevel 1 (
@@ -8,18 +7,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "node_modules" (
-    echo [run] Installing dependencies...
-    call npm install
-    if errorlevel 1 (
-        echo [run] npm install failed.
-        exit /b 1
-    )
-)
+:: The server runs in this same console, but it is not a child of this script.
+:: That is what keeps Ctrl+C quiet: there is no batch left to stop and ask
+:: "Terminate batch job (Y/N)?", the console simply signals PowerShell, which
+:: stops the server. Closing the window works too, because
+:: utils\dev-server.ps1 ties the server to the console it was started in.
+:: An optional first argument is the port, which must match webapp\vite.config.ts.
+start /b powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\dev-server.ps1" %*
 
-echo [run] Starting the dev server. Your browser will open once it is ready.
-echo [run] Press Ctrl+C to stop.
-echo.
+echo [run] Dev server starting in this window. Press Ctrl+C, or close the window, to stop it.
 
-call npm run dev:open
-endlocal
+endlocal & exit /b 0

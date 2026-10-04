@@ -1,0 +1,82 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only one deploy at a time. Queued runs supersede older in-progress runs
+# instead of racing each other over the live site.
+concurrency:
+  group: firebase-hosting-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # Lets this workflow request a short-lived OIDC token for the deploy below.
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: Type check
+        working-directory: webapp
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: webapp
+        run: npm run lint
+
+      # `npm run build` is `tsc -b && vite build`, so this also covers typecheck.
+      - name: Build
+        working-directory: webapp
+        run: npm run build
+
+      # The auth action below reports an empty secret as "must specify exactly
+      # one of workload_identity_provider or credentials_json", which reads like
+      # a workflow bug rather than missing repository settings. Check first and
+      # name what is actually unset.
+      - name: Check deploy credentials are set
+        env:
+          WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+          WIF_SERVICE_ACCOUNT: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+        run: |
+          missing=""
+          if [ -z "${WIF_PROVIDER}" ]; then missing="${missing} WIF_PROVIDER"; fi
+          if [ -z "${WIF_SERVICE_ACCOUNT}" ]; then missing="${missing} WIF_SERVICE_ACCOUNT"; fi
+          if [ -n "${missing}" ]; then
+            echo "::error::Missing repository secret(s):${missing}. See docs/deploy.md for the one-time setup."
+            exit 1
+          fi
+          echo "Deploy credentials present."
+
+      # Trades the GitHub OIDC token for Google credentials. No key file and no
+      # long-lived secret are involved, which is why there is nothing to rotate.
+      - uses: google-github-actions/auth@v3
+        id: auth
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # `--only hosting` keeps the deploy to the site. Storage rules are not
+      # touched; change those through `firebase deploy --only storage` by hand.
+      # firebase-tools is a pinned devDependency, so this uses the version in
+      # package-lock.json rather than downloading one at deploy time.
+      - name: Deploy hosting
+        working-directory: webapp
+        run: npx firebase deploy --only hosting --project bag-buddy-f0896 --non-interactive

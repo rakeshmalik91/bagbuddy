@@ -265,10 +265,10 @@ export function WeightLookupDialog({
                 className="flex items-center gap-3 rounded-xl border border-slate-200 p-2.5 dark:border-slate-800"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+                  <p className="text-sm font-medium break-words text-slate-800 dark:text-slate-100">
                     {candidate.label}
                   </p>
-                  <p className="truncate text-xs text-slate-400">{candidate.detail}</p>
+                  <p className="text-xs break-words text-slate-400">{candidate.detail}</p>
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${CONFIDENCE_CLASS[candidate.confidence]}`}

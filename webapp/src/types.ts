@@ -7,6 +7,12 @@ export type WeightUnit = 'kg' | 'lb'
 /** How many columns this bag's items are arranged in. */
 export type ItemColumnCount = 1 | 2 | 3
 
+/**
+ * What an item is. A pouch is still an item, with its own weight, but other
+ * items can be packed inside it, so it gains a contents list.
+ */
+export type ItemKind = 'item' | 'pouch'
+
 export interface Bag {
   id: string
   /** Short display label, e.g. "Camera bag". Shown large. */
@@ -30,6 +36,8 @@ export interface Bag {
   itemColumns: ItemColumnCount
   /** Index into `BAG_COLORS`. */
   colorIndex: number
+  /** Whether the bag is parked below the line (not travelling on this trip). */
+  parked?: boolean
 }
 
 export interface Item {
@@ -46,16 +54,35 @@ export interface Item {
   accessoriesKg: number
   /** Optional note describing those extras. */
   accessoriesNote: string
+  kind: ItemKind
   /** `null` while the item sits unassigned in the tray. */
   bagId: string | null
+  /** Set when the item is packed inside a pouch rather than loose in a bag. */
+  pouchId: string | null
   /** Where the weight came from, e.g. `manual` or `openfoodfacts`. */
   weightSource: string
+}
+
+export interface ItemPlacement {
+  itemId: string
+  itemName?: string
+  bagId: string | null
+  bagName?: string | null
+  pouchId: string | null
+}
+
+export interface LayoutSnapshot {
+  id: string
+  name: string
+  createdAt: number
+  placements: ItemPlacement[]
 }
 
 export interface BaggageState {
   bags: Bag[]
   items: Item[]
   unit: WeightUnit
+  snapshots?: LayoutSnapshot[]
 }
 
 export interface BagTotals {

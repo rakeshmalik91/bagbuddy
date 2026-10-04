@@ -1,4 +1,4 @@
-import type { Bag, BaggageState, Item, ItemColumnCount } from '../types'
+import type { Bag, BaggageState, Item, ItemColumnCount, ItemKind, ItemPlacement, LayoutSnapshot } from '../types'
 
 const STORAGE_KEY = 'bagbuddy:state:v1'
 
@@ -20,6 +20,10 @@ function readOptionalWeight(value: unknown): number | null {
 
 function readColumns(value: unknown): ItemColumnCount {
   return value === 2 || value === 3 ? value : 1
+}
+
+function readKind(value: unknown): ItemKind {
+  return value === 'pouch' ? 'pouch' : 'item'
 }
 
 function readId(value: unknown, prefix: string): string {
@@ -58,6 +62,7 @@ export function normaliseBaggageState(value: unknown): BaggageState | null {
           itemColumns: readColumns(entry.itemColumns),
           colorIndex:
             typeof colorIndex === 'number' && Number.isInteger(colorIndex) ? colorIndex : 0,
+          parked: typeof entry.parked === 'boolean' ? entry.parked : false,
         },
       ]
       })
@@ -77,14 +82,54 @@ export function normaliseBaggageState(value: unknown): BaggageState | null {
             weightKg: readWeight(entry.weightKg),
             accessoriesKg: readWeight(entry.accessoriesKg),
             accessoriesNote: readString(entry.accessoriesNote, ''),
+            kind: readKind(entry.kind),
             bagId,
+            pouchId: typeof entry.pouchId === 'string' ? entry.pouchId : null,
             weightSource: readString(entry.weightSource, 'manual'),
           },
         ]
       })
     : []
 
-  return { bags, items, unit: value.unit === 'lb' ? 'lb' : 'kg' }
+  // A pouch reference only counts when it points at a pouch that is really
+  // there, and pouches are one level deep, so a pouch never sits in a pouch.
+  const pouchIds = new Set(items.filter((item) => item.kind === 'pouch').map((item) => item.id))
+  const settled = items.map((item) => {
+    const pouchId =
+      item.kind === 'item' && item.pouchId !== null && item.pouchId !== item.id && pouchIds.has(item.pouchId)
+        ? item.pouchId
+        : null
+    return pouchId === item.pouchId ? item : { ...item, pouchId }
+  })
+
+  const snapshots: LayoutSnapshot[] = Array.isArray(value.snapshots)
+    ? value.snapshots.flatMap((entry): LayoutSnapshot[] => {
+        if (!isRecord(entry)) return []
+        const id = readString(entry.id, '')
+        const name = readString(entry.name, 'Snapshot')
+        if (!id) return []
+        const createdAt = typeof entry.createdAt === 'number' ? entry.createdAt : Date.now()
+        const placements = Array.isArray(entry.placements)
+          ? entry.placements.flatMap((p): ItemPlacement[] => {
+              if (!isRecord(p)) return []
+              const itemId = readString(p.itemId, '')
+              if (!itemId) return []
+              return [
+                {
+                  itemId,
+                  bagId: typeof p.bagId === 'string' ? p.bagId : null,
+                  pouchId: typeof p.pouchId === 'string' ? p.pouchId : null,
+                  itemName: typeof p.itemName === 'string' ? p.itemName : undefined,
+                  bagName: typeof p.bagName === 'string' ? p.bagName : undefined,
+                },
+              ]
+            })
+          : []
+        return [{ id, name, createdAt, placements }]
+      })
+    : []
+
+  return { bags, items: settled, unit: value.unit === 'lb' ? 'lb' : 'kg', snapshots }
 }
 
 export function loadState(): BaggageState | null {

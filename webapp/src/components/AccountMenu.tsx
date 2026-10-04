@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCloud } from '../state/cloudSyncContext'
 import type { SyncStatus } from '../state/cloudSyncContext'
 
@@ -18,9 +18,40 @@ function syncedLabel(lastSyncedAt: number | null): string {
 
 export function AccountMenu() {
   const cloud = useCloud()
+  const rootRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // The panel closes in several ways now, so a typed password never lingers.
+  function closePanel() {
+    setOpen(false)
+    setPassword('')
+  }
+
+  // Clicking away or pressing Escape closes the panel. A full screen overlay
+  // would not do: the header's backdrop blur traps fixed positioning, so such an
+  // overlay would only ever cover the header.
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) closePanel()
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closePanel()
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
+  function toggle() {
+    if (open) closePanel()
+    else setOpen(true)
+  }
 
   const style = STATUS_STYLE[cloud.status]
 
@@ -32,12 +63,12 @@ export function AccountMenu() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       {cloud.userEmail ? (
         <>
           <button
             type="button"
-            onClick={() => setOpen((value) => !value)}
+            onClick={toggle}
             aria-expanded={open}
             className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
           >
@@ -48,14 +79,7 @@ export function AccountMenu() {
           </button>
 
           {open && (
-            <>
-              <button
-                type="button"
-                aria-label="Close account menu"
-                onClick={() => setOpen(false)}
-                className="fixed inset-0 z-20 cursor-default"
-              />
-              <div className="absolute top-full right-0 z-30 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="absolute top-full right-0 z-30 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900">
                 <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                   {cloud.userEmail}
                 </p>
@@ -80,7 +104,7 @@ export function AccountMenu() {
                   <button
                     type="button"
                     onClick={() => {
-                      setOpen(false)
+                      closePanel()
                       void cloud.signOut()
                     }}
                     className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -89,14 +113,13 @@ export function AccountMenu() {
                   </button>
                 </div>
               </div>
-            </>
           )}
         </>
       ) : (
         <>
           <button
             type="button"
-            onClick={() => setOpen((value) => !value)}
+            onClick={toggle}
             aria-expanded={open}
             className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
@@ -105,17 +128,10 @@ export function AccountMenu() {
           </button>
 
           {open && (
-            <>
-              <button
-                type="button"
-                aria-label="Close sign in panel"
-                onClick={() => setOpen(false)}
-                className="fixed inset-0 z-20 cursor-default"
-              />
-              <form
-                onSubmit={submit}
-                className="absolute top-full right-0 z-30 mt-2 flex w-72 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900"
-              >
+            <form
+              onSubmit={submit}
+              className="absolute top-full right-0 z-30 mt-2 flex w-72 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900"
+            >
                 <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                   Save your bags across devices
                 </p>
@@ -156,7 +172,6 @@ export function AccountMenu() {
                   Storage so you can move between devices.
                 </p>
               </form>
-            </>
           )}
         </>
       )}
