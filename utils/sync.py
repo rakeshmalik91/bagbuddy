@@ -15,13 +15,14 @@ Authentication, in order of preference:
    Storage API so the same rules as the app apply.
 
 Usage:
-    python sync.py                      download every allowlisted account
-    python sync.py --email a@b.c        download one account
-    python sync.py --out D:/backups     write somewhere else
-    python sync.py --push rakeshmalik91@gmail.com
-                                         upload data/<email>/state.json back
-    python sync.py --push rakeshmalik91@gmail.com --dry-run
-                                         show the target without writing
+    python utils/sync.py               download every allowlisted account
+    python utils/sync.py --email a@b.c download one account
+    python utils/sync.py --out D:/backups
+                                      write somewhere else
+    python utils/sync.py --push rakeshmalik91@gmail.com
+                                      upload data/<email>/state.json back
+    python utils/sync.py --push rakeshmalik91@gmail.com --dry-run
+                                      show the target without writing
 
 Standard library only, so there is nothing to pip install.
 """
@@ -56,7 +57,9 @@ FIREBASE_SIGNIN_URL = (
 )
 FIREBASE_MEDIA_URL = "https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{name}?alt=media"
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+# This script lives in utils/, so the repository root is one level up and the
+# downloads land beside it in data/, where they have always been.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUT = PROJECT_ROOT / "data"
 
 

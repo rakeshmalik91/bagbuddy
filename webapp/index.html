@@ -2,12 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/bagbuddy-icon.svg" />
-    <link rel="apple-touch-icon" href="/bagbuddy-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <!-- iOS ignores SVG icons, so a PNG comes first and the SVG is the modern pick. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/svg+xml" href="/bagbuddy-icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#020617" />
     <link rel="canonical" href="https://bag-buddy.netlify.app/" />
-    <title>BagBuddy — visual baggage organiser</title>
+    <title>BagBuddy</title>
     <meta
       name="description"
       content="BagBuddy is your luggage balance copilot: drag items into your bags and see each bag's total weight. Free, private, and it all stays in your browser."

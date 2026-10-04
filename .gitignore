@@ -34,8 +34,11 @@ firestore-debug.log*
 ui-debug.log*
 *-debug.log
 
-# Local board exports from sync.py (real packing data, not for the repository)
+# Local board exports from utils/sync.py (real packing data, not for the repository)
 data/
+
+# Python bytecode from the backup tool
+__pycache__/
 
 # Temporary files
 /*.tmp

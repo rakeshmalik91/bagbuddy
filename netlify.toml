@@ -1,4 +1,7 @@
 [build]
+  # The app lives in webapp/, so Netlify has to build from there. Paths after
+  # this point are relative to that directory, which is why publish is "dist".
+  base = "webapp"
   command = "npm run build"
   publish = "dist"
 
@@ -17,3 +20,9 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# index.html must never be cached, or a deploy looks unchanged after it lands.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"

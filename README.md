@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/bagbuddy-icon.svg" width="88" height="88" alt="BagBuddy logo" />
+  <img src="webapp/public/bagbuddy-icon.svg" width="88" height="88" alt="BagBuddy logo" />
   <h1>BagBuddy</h1>
   <p><strong>Your luggage balance copilot.</strong> Drag your things into your bags and see every bag's total weight.</p>
   <p><a href="https://bag-buddy.netlify.app/">bag-buddy.netlify.app</a></p>
@@ -18,9 +18,18 @@
 - **Product names** on everything, which is what weight lookup searches for.
 - **kg or lb**, stored in kilograms so switching units never drifts.
 - **Undo and redo**, light and dark themes, and one to three item columns per bag.
-- **Optional cloud sync** to Firebase Storage, and `sync.py` to back it up locally.
+- **Optional cloud sync** to Firebase Storage, and `utils/sync.py` to back it up locally.
 
 Weight is the only constraint for now. Dimensions are planned: [docs/roadmap.md](docs/roadmap.md).
+
+## Layout
+
+```text
+webapp/    the React app: src, public, Vite, TypeScript, ESLint and deploy config
+utils/     sync.py, the local backup tool
+docs/      design notes
+data/      board backups written by sync.py, not in the repository
+```
 
 ## Running it
 
@@ -28,6 +37,8 @@ Weight is the only constraint for now. Dimensions are planned: [docs/roadmap.md]
 run.bat              :: installs if needed, then starts the dev server
 run_all_tests.bat    :: type check, lint, production build
 ```
+
+Both run from `webapp/`. To drive the tools directly, `cd webapp` first.
 
 ## Weight lookup
 
@@ -44,17 +55,18 @@ Details and the production path: [docs/weight-lookup.md](docs/weight-lookup.md).
 ## Backups
 
 ```bat
-python sync.py
+sync.bat              :: or: python utils\sync.py
 ```
 
 Pulls the saved boards into `data/` as readable JSON, limited to the two allowlisted
-accounts. See [docs/cloud-sync.md](docs/cloud-sync.md).
+accounts. Extra arguments are passed straight through, so `sync.bat --email a@b.c` works.
+See [docs/cloud-sync.md](docs/cloud-sync.md).
 
 ## Deploying
 
-Netlify builds `npm run build` and publishes `dist`. There is one serverless function,
-`netlify/functions/bagbuddy-state.ts`, which proxies Cloud Storage so the browser is not
-blocked by CORS on some networks. Nothing else needs configuring.
+`netlify.toml` at the repository root sets the base directory to `webapp/`, so Netlify installs
+`webapp/package-lock.json`, runs `npm run build` there and publishes `webapp/dist`. Firebase
+Hosting reads `webapp/firebase.json`, so run `firebase deploy` from `webapp/`.
 
 ## Notes
 

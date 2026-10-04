@@ -1,6 +1,6 @@
 # Weight lookup
 
-You can always type a weight by hand — that is the primary path and always works. This
+You can always type a weight by hand ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â that is the primary path and always works. This
 document describes the optional lookup feature: what it does today, what it honestly
 cannot do, and how to make it better if the app grows.
 
@@ -17,7 +17,7 @@ name yet, the result's label is written into that field, so the board improves a
 It is a thin shell over a list of interchangeable providers:
 
 ```ts
-// src/services/lookup/types.ts
+// webapp/src/services/lookup/types.ts
 interface LookupProvider {
   id: string
   label: string
@@ -28,7 +28,7 @@ interface LookupProvider {
 ```
 
 Every provider returns the same shape, so adding a fourth source is one file plus one line
-in the registry in `src/services/lookup/index.ts`:
+in the registry in `webapp/src/services/lookup/index.ts`:
 
 ```ts
 export interface WeightCandidate {
@@ -46,16 +46,16 @@ source. Items whose weight did not come from a human show *"estimated via `<sour
 instead of *"manually entered"*, and editing the number by hand resets that badge. The
 provenance is deliberately visible: a lookup number is a starting point, not a fact.
 
-### 1. Offline typical weights — `typicalWeights.ts`
+### 1. Offline typical weights ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â `typicalWeights.ts`
 
 A table of around 70 common travel items (laptop, jeans, shoes (pair), passport,
-toiletry bag, camera body…). Token-overlap scoring, no network, no key. It is the default
+toiletry bag, camera bodyÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦). Token-overlap scoring, no network, no key. It is the default
 provider so the feature does something useful the moment someone opens the app.
 
 Every entry is `confidence: 'low'` and is described as *typical packed weight*, not a
 measurement.
 
-### 2. Open Food Facts — `openFoodFacts.ts`
+### 2. Open Food Facts ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â `openFoodFacts.ts`
 
 The free open product database. No API key, no registration, and it sends
 `Access-Control-Allow-Origin`, so a static site can call it directly from the browser:
@@ -76,7 +76,7 @@ because these strings are inconsistent:
 | `400 g` | 0.4 kg | the common case |
 | `1 kg` | 1 kg | |
 | `6 x 100 g` | 0.6 kg | multipack multiplier |
-| `1,5 l` | 1.5 kg | comma decimal separator, volume ⇒ assumed density 1 kg/L |
+| `1,5 l` | 1.5 kg | comma decimal separator, volume ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ assumed density 1 kg/L |
 | `12 fl oz` | 0.355 kg | `fl oz` is folded to `floz` first |
 | `15 gram` | 0.015 kg | spelled-out units are in the map |
 
@@ -85,12 +85,12 @@ from `serving_size` (that is one portion, not the whole product), and `low` when
 was volume-derived. Only the six best package sizes and two serving sizes are returned, so
 the list stays readable.
 
-### 3. OpenRouter LLM estimate — `openRouter.ts`
+### 3. OpenRouter LLM estimate ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â `openRouter.ts`
 
 Asks a chat model for a typical weight of the product:
 
 ```json
-{"candidates":[{"label":"14-inch laptop","weightKg":1.6,"confidence":4,"note":"…"}]}
+{"candidates":[{"label":"14-inch laptop","weightKg":1.6,"confidence":4,"note":"ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦"}]}
 ```
 
 The model list is fetched from OpenRouter's **public** catalogue endpoint, which needs no
@@ -130,7 +130,7 @@ the pieces worth adding, in order of value:
 1. **A Netlify Function proxy.** Netlify Functions are free on the Hobby plan and require
    no server to operate, so this is still consistent with "no server". It solves three
    problems at once: keeps the API key out of the browser, adds a caching layer, and lets
-   you send a real `User-Agent` — which is exactly what Open Food Facts asks for and what
+   you send a real `User-Agent` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â which is exactly what Open Food Facts asks for and what
    stops them throttling you.
 
    ```
@@ -171,7 +171,7 @@ the pieces worth adding, in order of value:
    const json = () => ({ 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
    ```
 
-   Then point the provider at `/.netlify/functions/weight-lookup?q=…` instead of the Open
+   Then point the provider at `/.netlify/functions/weight-lookup?q=ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦` instead of the Open
    Food Facts host. Nothing else in the app changes.
 
 2. **Barcode scanning.** `getUserMedia` plus a barcode library maps a product to an Open
@@ -193,9 +193,9 @@ the pieces worth adding, in order of value:
 
 ## Adding a provider
 
-1. Create `src/services/lookup/<name>.ts` exporting a `LookupProvider`.
+1. Create `webapp/src/services/lookup/<name>.ts` exporting a `LookupProvider`.
 2. Return `WeightCandidate[]`, or throw an `Error` with a message worth showing a human.
-   Never return an empty array for a failure — the UI distinguishes "no results" from
+   Never return an empty array for a failure ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the UI distinguishes "no results" from
    "it broke".
-3. Register it in `LOOKUP_PROVIDERS` in `src/services/lookup/index.ts`.
+3. Register it in `LOOKUP_PROVIDERS` in `webapp/src/services/lookup/index.ts`.
 4. Check it is CORS-usable from the browser, or route it through a function.

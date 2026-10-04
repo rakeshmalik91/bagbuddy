@@ -50,6 +50,9 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
 
   const queueRef = useRef<Promise<boolean>>(Promise.resolve(true))
   const connectHandledRef = useRef(false)
+  // Set while the user is typing credentials right now, as opposed to a session
+  // the browser restored on load. Only the former is worth asking about.
+  const freshSignInRef = useRef(false)
   // Once we know what is in the cloud, an empty local board is a deliberate
   // state rather than a failed download, so the guard can be relaxed.
   const knowsRemoteRef = useRef(false)
@@ -67,6 +70,7 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
           setUser(nextUser)
           if (nextUser) return
           connectHandledRef.current = false
+          freshSignInRef.current = false
           knowsRemoteRef.current = false
           setSyncEnabled(false)
           setStatus('local-only')
@@ -134,6 +138,17 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
     return enqueue(() => upload(email, target, state))
   }, [enqueue, sdk, state, upload, user?.email])
 
+  /** Takes the cloud copy as the board on screen, without asking or uploading. */
+  const adoptRemote = useCallback(
+    (state: BaggageState, updatedAt: number | null) => {
+      dispatch({ type: 'state/reset', state })
+      setSyncEnabled(true)
+      setLastSyncedAt(updatedAt)
+      setStatus('synced')
+    },
+    [dispatch],
+  )
+
   /**
    * Runs once per signed-in session, however it started: a fresh sign-in, or a
    * page reload that restored the Firebase session. Without it, reloading the
@@ -155,10 +170,7 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
 
         // Nothing on this device to lose, so the cloud copy simply wins.
         if (isStateEmpty(localState)) {
-          dispatch({ type: 'state/reset', state: snapshot.state })
-          setSyncEnabled(true)
-          setLastSyncedAt(snapshot.updatedAt)
-          setStatus('synced')
+          adoptRemote(snapshot.state, snapshot.updatedAt)
           return
         }
 
@@ -166,9 +178,16 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
         // was restored from it last time. There is nothing to decide, so do not
         // ask. Only a genuine divergence is worth a question.
         if (JSON.stringify(localState) === JSON.stringify(snapshot.state)) {
-          setSyncEnabled(true)
-          setLastSyncedAt(snapshot.updatedAt)
-          setStatus('synced')
+          adoptRemote(snapshot.state, snapshot.updatedAt)
+          return
+        }
+
+        // Signing in again on a device that is already connected is not a
+        // decision either: the cloud copy is this account's copy, so it wins
+        // without a question. Only someone typing a password right now gets
+        // asked, because their device may hold bags the cloud has never seen.
+        if (!freshSignInRef.current) {
+          adoptRemote(snapshot.state, snapshot.updatedAt)
           return
         }
 
@@ -181,7 +200,7 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
       setSyncEnabled(true)
       await enqueue(() => upload(email, target, localState))
     },
-    [dispatch, enqueue, upload],
+    [adoptRemote, enqueue, upload],
   )
 
   useEffect(() => {
@@ -194,12 +213,14 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       setStatus('connecting')
       setMessage(null)
+      freshSignInRef.current = true
       try {
         const { signInWithEmailAndPassword } = await import('firebase/auth')
         const loaded = sdk ?? (await loadCloudSdk())
         if (sdk !== loaded) setSdk(loaded)
         await signInWithEmailAndPassword(loaded.auth, email.trim(), password)
       } catch (cause) {
+        freshSignInRef.current = false
         setStatus('error')
         setMessage(describeAuthError(cause))
       }
@@ -210,6 +231,7 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (!sdk) return
     setSyncEnabled(false)
+    freshSignInRef.current = false
     setChoice(null)
     setRemoteCopy(null)
     setLastSyncedAt(null)

@@ -1,7 +1,7 @@
 # Cloud sync with Firebase Storage
 
 BagBuddy is local-first. Everything works with no account at all: bags, items and weights
-live in `localStorage` and never leave the device. Signing in adds one thing — a copy of
+live in `localStorage` and never leave the device. Signing in adds one thing ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â a copy of
 your bags in Firebase Storage, so you can continue a trip on another device.
 
 Live at <https://bag-buddy.netlify.app/>.
@@ -13,7 +13,7 @@ Live at <https://bag-buddy.netlify.app/>.
 - **On first sign-in**, if the account already has bags in the cloud you are asked which
   copy wins. Nothing is overwritten silently.
 - **After that**, changes are uploaded automatically about a second after you stop editing.
-  The header shows the status: `Local only`, `Syncing…`, `Synced at 14:22`, or
+  The header shows the status: `Local only`, `SyncingÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦`, `Synced at 14:22`, or
   `Sync problem` with the reason.
 - **Sign out** returns the app to local-only. The local copy is untouched, so signing back in
   asks the same question again.
@@ -39,7 +39,7 @@ One object per account, named after the account's email, holding the whole board
 }
 ```
 
-The path is built in `statePath()` in `src/services/cloud/repository.ts`, and the payload is
+The path is built in `statePath()` in `webapp/src/services/cloud/repository.ts`, and the payload is
 validated with the same `normaliseBaggageState()` used for `localStorage`, so an old or
 hand-edited object cannot break the app.
 
@@ -71,7 +71,7 @@ This allows direct browser reads (`getBytes`) and uploads (`uploadString`) from 
 
 If the rules are ever missing, signing in still succeeds and the upload fails with
 `storage/unauthorized`; the account menu says *"Firebase Storage rejected this. The bucket
-security rules need to allow your signed-in account."* Nothing is lost — the local copy keeps
+security rules need to allow your signed-in account."* Nothing is lost ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the local copy keeps
 working and the next successful upload catches up.
 
 ## Known rough edges
@@ -86,7 +86,7 @@ working and the next successful upload catches up.
   either one object per trip plus a small index, or a `trips` array inside the single object;
   the rules already allow any file name under the account folder, so no rules change would be
   needed.
-- **`sync.py` covers the download path.** The `--push` restore path is implemented but has not
+- **`utils/sync.py` covers the download path.** The `--push` restore path is implemented but has not
   been run against the live bucket, because it would overwrite real data. Use `--dry-run`
   first, then the real command.
 
@@ -113,11 +113,11 @@ service firebase.storage {
 The signed-in account's email claim from the Firebase ID token must equal the folder name, so
 one account can never read or overwrite another's bags, and nothing outside an account folder
 is reachable. The rules were compiled against the Firebase Storage emulator to confirm they
-parse and load; check them in the console under Storage → Rules once deployed.
+parse and load; check them in the console under Storage ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Rules once deployed.
 
 ## Why the Firebase web config is in the repository
 
-`src/services/cloud/config.ts` contains the client configuration. It is not a secret: a
+`webapp/src/services/cloud/config.ts` contains the client configuration. It is not a secret: a
 Firebase web config identifies the project and is designed to be shipped to browsers. All
 access control comes from Authentication plus the Storage rules above. What **must** never be
 committed is a user password or a service-account private key.
@@ -144,5 +144,5 @@ file name under the account folder, so no rules change would be needed.
 
 ## Local backups
 
-`sync.py` in the repository root pulls these objects down to `data/`. See the README section
+`utils/sync.py` pulls these objects down to `data/`. See the README section
 "Backing up to a local folder".

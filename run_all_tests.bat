@@ -1,6 +1,6 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+cd /d "%~dp0webapp"
 
 where npm >nul 2>nul
 if errorlevel 1 (
