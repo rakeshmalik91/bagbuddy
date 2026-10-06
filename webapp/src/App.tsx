@@ -410,11 +410,10 @@ export function App() {
                 type="button"
                 aria-pressed={unit === option}
                 onClick={() => setUnit(option)}
-                className={`px-3 py-1.5 text-sm font-medium transition ${
-                  unit === option
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
-                }`}
+                className={`px-3 py-1.5 text-sm font-medium transition ${unit === option
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                  }`}
               >
                 {option}
               </button>
@@ -539,19 +538,17 @@ export function App() {
                 <SortableContext items={toBagDragIds(activeBags)} strategy={rectSortingStrategy}>
                   <div
                     ref={setActiveZoneRef}
-                    className={`flex flex-wrap items-start gap-4 rounded-2xl transition-all ${
-                      isActiveZoneOver && activeBagId !== null
-                        ? 'ring-2 ring-indigo-400/80 bg-indigo-50/20 p-2'
-                        : ''
-                    }`}
+                    className={`flex flex-wrap items-start gap-4 rounded-2xl transition-all ${isActiveZoneOver && activeBagId !== null
+                      ? 'ring-2 ring-indigo-400/80 bg-indigo-50/20 p-2'
+                      : ''
+                      }`}
                   >
                     {activeBags.length === 0 ? (
                       <div
-                        className={`flex min-h-24 flex-1 items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center text-xs transition ${
-                          isActiveZoneOver && activeBagId !== null
-                            ? 'border-indigo-500 bg-indigo-50/60 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/40 dark:text-indigo-300'
-                            : 'border-slate-300/80 bg-slate-50/40 text-slate-400 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-500'
-                        }`}
+                        className={`flex min-h-24 flex-1 items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center text-xs transition ${isActiveZoneOver && activeBagId !== null
+                          ? 'border-indigo-500 bg-indigo-50/60 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/40 dark:text-indigo-300'
+                          : 'border-slate-300/80 bg-slate-50/40 text-slate-400 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-500'
+                          }`}
                       >
                         <div>
                           <p className="font-medium text-slate-600 dark:text-slate-300">
@@ -581,11 +578,10 @@ export function App() {
                         ref={setAddBagZoneRef}
                         type="button"
                         onClick={() => setAddingBag(true)}
-                        className={`flex min-h-24 items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-sm font-medium transition ${
-                          isAddBagZoneOver && activeBagId !== null
-                            ? 'border-indigo-500 bg-indigo-50/80 ring-2 ring-indigo-400 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/60 dark:text-indigo-300'
-                            : 'border-slate-300 text-slate-500 hover:border-indigo-400 hover:bg-indigo-50/60 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-indigo-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300'
-                        } ${SINGLE_BAG_LAYOUT}`}
+                        className={`flex min-h-24 items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-sm font-medium transition ${isAddBagZoneOver && activeBagId !== null
+                          ? 'border-indigo-500 bg-indigo-50/80 ring-2 ring-indigo-400 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/60 dark:text-indigo-300'
+                          : 'border-slate-300 text-slate-500 hover:border-indigo-400 hover:bg-indigo-50/60 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-indigo-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300'
+                          } ${SINGLE_BAG_LAYOUT}`}
                       >
                         {isAddBagZoneOver && activeBagId !== null ? 'Drop here to place last' : '+ Add another bag'}
                       </button>
@@ -603,19 +599,17 @@ export function App() {
                 <SortableContext items={toBagDragIds(parkedBags)} strategy={rectSortingStrategy}>
                   <div
                     ref={setParkedZoneRef}
-                    className={`flex flex-wrap items-start gap-4 rounded-2xl transition-all ${
-                      isParkedZoneOver && activeBagId !== null
-                        ? 'ring-2 ring-indigo-400/80 bg-indigo-50/20 p-2'
-                        : ''
-                    }`}
+                    className={`flex flex-wrap items-start gap-4 rounded-2xl transition-all ${isParkedZoneOver && activeBagId !== null
+                      ? 'ring-2 ring-indigo-400/80 bg-indigo-50/20 p-2'
+                      : ''
+                      }`}
                   >
                     {parkedBags.length === 0 ? (
                       <div
-                        className={`flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed p-6 text-center text-xs transition ${
-                          isParkedZoneOver && activeBagId !== null
-                            ? 'border-indigo-500 bg-indigo-50/60 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/40 dark:text-indigo-300'
-                            : 'border-slate-300/80 bg-slate-50/40 text-slate-400 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-500'
-                        }`}
+                        className={`flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed p-6 text-center text-xs transition ${isParkedZoneOver && activeBagId !== null
+                          ? 'border-indigo-500 bg-indigo-50/60 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/40 dark:text-indigo-300'
+                          : 'border-slate-300/80 bg-slate-50/40 text-slate-400 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-500'
+                          }`}
                       >
                         <p className="font-medium text-slate-600 dark:text-slate-300">
                           {isParkedZoneOver && activeBagId !== null
@@ -682,7 +676,7 @@ export function App() {
       <footer className="mx-auto w-full px-4 pb-2 sm:px-6">
         <div className="flex flex-col gap-1 border-t border-slate-200 pt-4 text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
           <p>© Rakesh Malik 2026</p>
-          <p>Co authored by: Spaace Bunny Alpha</p>
+          <p>Co authored by: Space Bunny Alpha, Gemini 3.8 Flash</p>
         </div>
       </footer>
 

@@ -2,7 +2,11 @@ import type { LookupSettings } from './types'
 
 const STORAGE_KEY = 'bagbuddy:lookup:v1'
 
-const EMPTY: LookupSettings = { openRouterApiKey: '', openRouterModel: '' }
+const EMPTY: LookupSettings = {
+  openRouterApiKey: '',
+  openRouterModel: '',
+  lastProviderId: '',
+}
 
 export function loadLookupSettings(): LookupSettings {
   try {
@@ -15,6 +19,8 @@ export function loadLookupSettings(): LookupSettings {
       openRouterApiKey: typeof record.openRouterApiKey === 'string' ? record.openRouterApiKey : '',
       openRouterModel:
         typeof record.openRouterModel === 'string' ? record.openRouterModel : '',
+      lastProviderId:
+        typeof record.lastProviderId === 'string' ? record.lastProviderId : '',
     }
   } catch {
     return EMPTY

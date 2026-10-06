@@ -15,6 +15,7 @@ export interface WeightCandidate {
 export interface LookupSettings {
   openRouterApiKey: string
   openRouterModel: string
+  lastProviderId?: string
 }
 
 export interface LookupProvider {

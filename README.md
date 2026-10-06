@@ -109,6 +109,6 @@ browser and is sent only to that provider.
 ## About
 
 © Rakesh Malik 2026
-Co authored by: Spaace Bunny Alpha
+Co authored by: Space Bunny Alpha, Gemini 3.8 Flash
 
 [CC0 1.0 Universal](LICENSE).

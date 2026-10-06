@@ -38,7 +38,12 @@ export function WeightLookupDialog({
   onClose,
 }: WeightLookupDialogProps) {
   const [settings, setSettings] = useState<LookupSettings>(() => loadLookupSettings())
-  const [providerId, setProviderId] = useState(DEFAULT_PROVIDER_ID)
+  const [providerId, setProviderId] = useState(() => {
+    const initial = loadLookupSettings()
+    return initial.lastProviderId && getLookupProvider(initial.lastProviderId)
+      ? initial.lastProviderId
+      : DEFAULT_PROVIDER_ID
+  })
   const [query, setQuery] = useState(initialQuery)
   const [status, setStatus] = useState<Status>('idle')
   const [candidates, setCandidates] = useState<WeightCandidate[]>([])
@@ -49,6 +54,8 @@ export function WeightLookupDialog({
 
   const abortRef = useRef<AbortController | null>(null)
   const hasAutoSearched = useRef(false)
+
+  const [showApiKey, setShowApiKey] = useState(false)
 
   const provider = getLookupProvider(providerId) ?? LOOKUP_PROVIDERS[0]!
   const needsKey = provider.needsApiKey && settings.openRouterApiKey.length === 0
@@ -98,11 +105,13 @@ export function WeightLookupDialog({
   // which is torn down on unmount.
   useEffect(() => {
     if (hasAutoSearched.current || initialQuery.trim().length === 0) return
+    if (provider.needsApiKey && !settings.openRouterApiKey) return
+    if (provider.id === 'openrouter' && !settings.openRouterModel) return
     hasAutoSearched.current = true
     window.setTimeout(() => {
       void run()
     }, 0)
-  }, [initialQuery, run])
+  }, [initialQuery, provider, run, settings])
 
   useEffect(() => {
     if (providerId !== 'openrouter' || models !== null) return
@@ -179,7 +188,11 @@ export function WeightLookupDialog({
             Source
             <select
               value={providerId}
-              onChange={(event) => setProviderId(event.target.value)}
+              onChange={(event) => {
+                const nextId = event.target.value
+                setProviderId(nextId)
+                updateSettings({ lastProviderId: nextId })
+              }}
               className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 outline-none transition focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             >
               {LOOKUP_PROVIDERS.map((option) => (
@@ -193,30 +206,66 @@ export function WeightLookupDialog({
           <p className="text-xs text-slate-400">{provider.description}</p>
         </form>
 
-        {(needsKey || needsModel) && provider.id === 'openrouter' && (
-          <div className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-500/40 dark:bg-amber-500/10">
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-              Bring your own OpenRouter key. It is stored in this browser only and is sent
-              directly to OpenRouter.
-            </p>
-            <input
-              type="password"
-              autoComplete="off"
-              value={settings.openRouterApiKey}
-              onChange={(event) => updateSettings({ openRouterApiKey: event.target.value.trim() })}
-              placeholder="sk-or-v1-…"
-              aria-label="OpenRouter API key"
-              className="rounded-lg border border-amber-300 bg-white px-2 py-1.5 font-mono text-xs outline-none focus:border-amber-500 dark:border-amber-500/40 dark:bg-slate-800 dark:text-slate-100"
-            />
-            <label className="flex flex-col gap-1 text-xs text-amber-800 dark:text-amber-200">
-              Model
+        {provider.id === 'openrouter' && (
+          <div className="flex flex-col gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                OpenRouter Configuration
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Stored in this browser only
+              </span>
+            </div>
+
+            <label className="flex flex-col gap-1 text-xs text-slate-600 dark:text-slate-300">
+              <span className="font-medium">OpenRouter API key</span>
+              <div className="relative flex items-center">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  autoComplete="off"
+                  value={settings.openRouterApiKey}
+                  onChange={(event) => updateSettings({ openRouterApiKey: event.target.value.trim() })}
+                  placeholder="sk-or-v1-…"
+                  aria-label="OpenRouter API key"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 pr-14 font-mono text-xs text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey((prev) => !prev)}
+                  className="absolute right-1.5 rounded px-1.5 py-0.5 text-[11px] font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  tabIndex={-1}
+                  aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                >
+                  {showApiKey ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </label>
+
+            <label className="flex flex-col gap-1 text-xs text-slate-600 dark:text-slate-300">
+              <div className="flex items-center justify-between font-medium">
+                <span>Model</span>
+                {models === null && !modelsError && (
+                  <span className="text-[10px] font-normal text-slate-400">Loading models…</span>
+                )}
+              </div>
               <select
                 value={settings.openRouterModel}
                 onChange={(event) => updateSettings({ openRouterModel: event.target.value })}
-                className="rounded-lg border border-amber-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-amber-500 dark:border-amber-500/40 dark:bg-slate-800 dark:text-slate-100"
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="">Select a model…</option>
-                {modelsError && <option value="">{modelsError}</option>}
+                {models === null && !modelsError && (
+                  <option value="" disabled>
+                    Loading models from OpenRouter…
+                  </option>
+                )}
+                {settings.openRouterModel &&
+                  !(models ?? []).some((m) => m.id === settings.openRouterModel) && (
+                    <option value={settings.openRouterModel}>
+                      {settings.openRouterModel}
+                    </option>
+                  )}
+                {modelsError && <option value="" disabled>{modelsError}</option>}
                 {(models ?? []).map((model) => (
                   <option key={model.id} value={model.id}>
                     {model.name}
@@ -225,6 +274,7 @@ export function WeightLookupDialog({
                 ))}
               </select>
             </label>
+
             {modelsError && (
               <button
                 type="button"
@@ -232,10 +282,20 @@ export function WeightLookupDialog({
                   setModels(null)
                   setModelsError(null)
                 }}
-                className="self-start text-xs font-medium text-amber-700 underline dark:text-amber-300"
+                className="self-start text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
               >
                 Retry model list
               </button>
+            )}
+
+            {(needsKey || needsModel) && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                {needsKey && needsModel
+                  ? 'Please enter your OpenRouter API key and choose a model to use this provider.'
+                  : needsKey
+                  ? 'Please enter your OpenRouter API key to use this provider.'
+                  : 'Please choose a model to use this provider.'}
+              </p>
             )}
           </div>
         )}
